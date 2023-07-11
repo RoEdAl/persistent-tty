@@ -1,0 +1,42 @@
+#
+# Building OpenWRT package
+#
+
+name: Package builder
+
+on:
+  workflow_dispatch:
+
+jobs:
+  pkg:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install packages
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: |
+          build-essential ccache ecj fastjar file g++ gawk
+          gettext git java-propose-classpath libelf-dev libncurses5-dev
+          libncursesw5-dev libssl-dev python3 unzip wget
+          python3-distutils python3-setuptools python3-dev rsync subversion
+          swig time xsltproc zlib1g-dev
+
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        path: persistent-tty
+        
+    - name: Build pakage
+      run: |
+        git config --global advice.detachedHead false
+        mkdir ../openwrt-sdk
+        cd ../openwrt-sdk
+        OWRTSDK=openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64
+        wget -q https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/${OWRTSDK}.tar.xz
+        tar -xf ${OWRTSDK}.tar.xz
+        echo 'src-link perstty ${{ github.workspace }}' > $OWRTSDK/feeds-perstty.conf
+        cp ${{ github.workspace }}/persistent-tty/openwrt/diffconfig $OWRTSDK
+        cp ${{ github.workspace }}/persistent-tty/openwrt/build-perstty.sh $OWRTSDK
+        cd $OWRTSDK
+        ./build-perstty.sh
