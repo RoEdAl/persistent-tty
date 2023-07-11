@@ -40,7 +40,8 @@ jobs:
         
     - name: Build pakage
       run: |
-        cd ..
+        mkdir ../build
+        cd ../build
         wget -q https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/${OWRTSDK}.tar.xz
         tar -xf ${OWRTSDK}.tar.xz
         rm ${OWRTSDK}.tar.xz
@@ -51,7 +52,6 @@ jobs:
         ./build-perstty.sh
         PKG_VER=${{ github.ref }}
         PKG_VER=${PKG_VER##refs/tags/v}
-        echo "Package version: ${PKG_VER}"
         if [ -z $(ls bin/packages/*/perstty/persistent-tty_${PKG_VER}-*.ipk) ]; then
            echo 'Package not found'
            exit 1
@@ -65,4 +65,4 @@ jobs:
       with:
         draft: true
         files: |
-          ../${OWRTSDK}/bin/packages/**/perstty/**.ipk
+          ../build/openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64/bin/packages/*/perstty/*.ipk
