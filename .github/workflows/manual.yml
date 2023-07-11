@@ -21,10 +21,12 @@ jobs:
           python3-distutils python3-setuptools python3-dev rsync subversion \
           swig time xsltproc zlib1g-dev
 
-    - name: Checkout and build
+    - name: Checkout
       uses: actions/checkout@v3
       with:
         path: main
+        
+    - name: Build pakage
       run: |
         echo "Repo: $(pwd)"
         mkdir ../openwrt-sdk
