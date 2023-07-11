@@ -1,0 +1,39 @@
+#
+# Building OpenWRT package
+#
+
+name: Package builder
+
+on:
+  workflow_dispatch:
+
+jobs:
+  pkg:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install packages
+      run: |
+        sudo apt update
+        sudo apt-get -y install build-essential ccache ecj fastjar file g++ gawk \
+          gettext git java-propose-classpath libelf-dev libncurses5-dev \
+          libncursesw5-dev libssl-dev python python2.7-dev python3 unzip wget \
+          python3-distutils python3-setuptools python3-dev rsync subversion \
+          swig time xsltproc zlib1g-dev
+
+    - name: Checkout and build
+      uses: actions/checkout@v3
+      with:
+        path: main
+      run: |
+        echo "Repo: $(pwd)"
+        mkdir ../openwrt-sdk
+        cd ../openwrt-sdk
+        echo "OpenWRT SDK: $(pwd)"
+        wget https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
+        tar -xf openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
+        echo 'src-link perstty ${{ github.workspace }}' > openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64/feeds-perstty.conf
+        cp ${{ github.workspace }}/main/openwrt/diffconfig openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64
+        cp ${{ github.workspace }}/main/openwrt/build-perstty.sh openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64
+        cd openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64
+        ./build-perstty.sh
