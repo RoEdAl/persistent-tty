@@ -1,10 +1,14 @@
+#!/bin/sh
+. /lib/functions.sh
+
 #
 # persistent-serial
 # TTY hotplug script
 #
 
 enabled=$(uci -q get persistent-tty.@general[0].enabled)
-[ "${enabled:-1}" -eq 0 ] && exit 0
+enabled=$(get_bool ${enabled:-yes})
+[ "${enabled}" -eq 0 ] && exit 0
 
 [ "${ACTION}" = add -o "${ACTION}" = remove ] || exit 0
 [ "${SUBSYSTEM}" = usb-serial ] || exit 0
@@ -17,7 +21,7 @@ function to_upper() {
 }
 
 function replace_vars() {
-    res=${id_link}
+    local res=${id_link}
     for var in devname subsystem manufacturer manufacturerId product productId interface serial port; do
        vvar=$(eval echo "\$${var}")
        p="\$$var"
@@ -29,8 +33,10 @@ function replace_vars() {
 }
 
 function dev_match() {
+    local p=0
+    local vvar=0
     for var in manufacturer manufacturerId product productId interface serial; do
-        p=$(uci -q get persistent-tty.@by_id[$1].$var)
+        config_get p $1 $var
         [ -z "$p" ] && continue
         vvar=$(eval echo "\$${var}")
         [ "$(to_upper "$p")" = "$(to_upper "$vvar")" ] && continue
@@ -48,7 +54,53 @@ function trim_name() {
 }
 
 function dry_run_desc() {
-   [ "${sdry_run}" -eq 1 ] && echo '[DRY RUN] '
+   [ "${1:-0}" -eq 1 ] && echo '[DRY RUN] '
+}
+
+function link_by_path() {
+    local cfg=$1
+    local sdev=$2
+    local enabled=1
+
+    config_get enabled $cfg enabled 1
+    [ "${enabled}" -eq 0 ] && return
+
+    config_get_bool sdry_run $cfg dry_run $dry_run
+
+    path_link=${DEVPATH##/devices/}
+    path_link=${path_link%%/${DEVICENAME}}
+    path_link=$(echo ${path_link} | sanitize_name)
+    
+    logger -t tty "$(dry_run_desc $sdry_run)${DEVICENAME} ===> serial/by-path/${path_link}"
+    [ "${sdry_run}" -eq 1 ] && return
+
+    mkdir -p /dev/serial/by-path
+    # logger -t tts "${DEVICENAME} ===> serial/by-path/${path_link}"
+    ln -sf $sdev "/dev/serial/by-path/${path_link}"
+}
+
+function link_by_id() {
+    local cfg=$1
+    local sdev=$2
+    local enabled=1
+
+    config_get enabled $cfg enabled 1
+    [ "${enabled}" -eq 0 ] && return
+
+    dev_match $cfg || return
+
+    config_get_bool sdry_run $cfg dry_run $dry_run
+
+    config_get id_link $cfg link
+    id_link=$(replace_vars | sanitize_name)
+    [ -z "${id_link}" ] && return
+
+    logger -t tty "$(dry_run_desc $sdry_run)${DEVICENAME} ===> serial/by-id/${id_link}"
+    [ "${sdry_run}" -eq 1 ] && return
+
+    mkdir -p /dev/serial/by-id
+    # logger -t tts "${DEVICENAME} ===> serial/by-id/${id_link}"
+    ln -sf $sdev "/dev/serial/by-id/${id_link}"
 }
 
 function rmdire() {
@@ -56,6 +108,9 @@ function rmdire() {
    [ -z "$(ls $1)" ] && rmdir $1
 }
 
+sdev="/dev/${DEVICENAME}"
+config_load persistent-tty
+config_get_bool dry_run general dry_run 0
 
 if [ "${ACTION}" = add ]; then
     SDEVPATH=/sys${DEVPATH}
@@ -74,65 +129,16 @@ if [ "${ACTION}" = add ]; then
     else
         unset port
     fi
-    
-    dry_run=$(uci -q get persistent-tty.@general[0].dry_run)
-    : ${dry_run:=0}
 
-    # by-path
-    senabled=$(uci -q get persistent-tty.@by_path[0].enabled)
-    if [ ! "${senabled:-1}" -eq 0 ]; then
-        sdry_run=$(uci -q get persistent-tty@by_path[0].dry_run)
-        : ${sdry_run:=$dry_run}
-
-        path_link=${DEVPATH##/devices/}
-        path_link=${path_link%%/${DEVICENAME}}
-        path_link=$(echo ${path_link} | sanitize_name)
-        
-        logger -t tty "$(dry_run_desc)${DEVICENAME} ===> serial/by-path/${path_link}"
-
-        if [ ! "${sdry_run}" -eq 1 ]; then
-            # logger -t tts "${DEVICENAME} ===> serial/by-path/${path_link}"
-            mkdir -p /dev/serial/by-path
-            ln -sf "/dev/${DEVICENAME}" "/dev/serial/by-path/${path_link}"
-        fi
-    fi
-
-    # by-id
-    idx=-1
-    while true; do
-        idx=$(($idx+1))
-        by_id=$(uci -q get persistent-tty.@by_id[$idx])
-        [ -z "${by_id}" ] && break
-
-        senabled=$(uci -q get persistent-tty.@by_id[$idx].enabled)
-        : ${senabled:=1}
-        [ "${senabled}" -eq 0 ] && continue
-
-        dev_match $idx || continue
-
-        sdry_run=$(uci -q get persistent-tty.@by_id[$idx].dry_run)
-        : ${sdry_run:=$dry_run}
-
-        id_link=$(uci -q get persistent-tty.@by_id[$idx].link)
-        id_link=$(replace_vars | sanitize_name)
-        [ -z "${id_link}" ] && continue
-
-        logger -t tty "$(dry_run_desc)${DEVICENAME} ===> serial/by-id/${id_link}"
-        [ "${sdry_run}" -eq 1 ] && continue
-
-        mkdir -p /dev/serial/by-id
-        # logger -t tts "${DEVICENAME} ===> serial/by-id/${id_link}"
-        ln -sf "/dev/${DEVICENAME}" "/dev/serial/by-id/${id_link}"
-    done
+    link_by_path by_path $sdev
+    config_foreach link_by_id by_id $sdev
 elif [ "${ACTION}" = remove ]; then
-    sdry_run=$(uci -q get persistent-tty.@general[0].dry_run)
-    : ${sdry_run:=0}
     for link in $(find /dev/serial -type l); do
         [ -L ${link} ] || continue
-        [ "$(readlink ${link})" = "/dev/${DEVICENAME}" ] || continue
+        [ "$(readlink ${link})" = $sdev ] || continue
         slink=${link##/dev/}
-        logger -t tty "$(dry_run_desc)${DEVICENAME} =x=> ${slink}"
-        [ "${sdry_run}" -eq 1 ] && continue
+        logger -t tty "$(dry_run_desc $dry_run)${DEVICENAME} =X=> ${slink}"
+        [ "${dry_run}" -eq 1 ] && continue
         rm ${link}
     done
     if [ ! "${sdry_run}" -eq 1 ]; then
@@ -141,4 +147,3 @@ elif [ "${ACTION}" = remove ]; then
         rmdire /dev/serial
     fi
 fi
-

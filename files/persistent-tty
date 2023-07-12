@@ -1,9 +1,9 @@
 
-config general
-	option enabled '0'
-	option dry_run '1'
+config general 'general'
+	option enabled 'no'
+	option dry_run 'yes'
 
-config variables
+config variables 'variables'
 	list variable 'devname'
 	list variable 'subsystem'
 	list variable 'manufacturer'
@@ -14,8 +14,9 @@ config variables
 	list variable 'serial'
 	list variable 'port'
 
-config by_path
-	option enabled '1'
+config by_path 'by_path'
+	option enabled 'yes'
+	option dry_run 'no'
 
 config by_id
 	option link '${subsystem}-${manufacturer}:${product}-if${interface}-port${port}'
@@ -27,8 +28,7 @@ config by_id
 	option link '${subsystem}-${serial}-if${interface}-port${port}'
 
 config by_id 'mylink'
-	option enabled '0'
-	option dry_run '1'
+	option enabled 'no'
+	option dry_run 'yes'
 	option manufacturerId '0403'
 	option link 'mylink-${serial}'
-
