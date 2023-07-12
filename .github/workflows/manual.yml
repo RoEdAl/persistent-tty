@@ -10,6 +10,8 @@ on:
 jobs:
   pkg:
     runs-on: ubuntu-latest
+    env:
+      OWRTSDK: openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64
 
     steps:
     - name: Install packages
@@ -22,21 +24,35 @@ jobs:
           python3-distutils python3-setuptools python3-dev rsync subversion
           swig time xsltproc zlib1g-dev
 
+    - name: Cache OpenWRT SDK
+      id: cache-owrtsdk
+      uses: actions/cache@v3
+      with:
+        path: build
+        key: ${{ runner.os }}-owrtsdk
+
+    - name: Download OpenWRT SDK
+      if: steps.cache-owrtsdk.outputs.cache-hit != 'true'
+      run: |
+        mkdir build
+        cd build
+        wget -q https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/${OWRTSDK}.tar.xz
+        tar -xf ${OWRTSDK}.tar.xz
+        rm ${OWRTSDK}.tar.xz
+
+    - name: Git configuration
+      run: git config --global advice.detachedHead false
+   
     - name: Checkout
       uses: actions/checkout@v3
       with:
-        path: persistent-tty
+        path: feed/persistent-tty
         
     - name: Build pakage
       run: |
-        git config --global advice.detachedHead false
-        mkdir ../openwrt-sdk
-        cd ../openwrt-sdk
-        OWRTSDK=openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64
-        wget -q https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/${OWRTSDK}.tar.xz
-        tar -xf ${OWRTSDK}.tar.xz
-        echo 'src-link perstty ${{ github.workspace }}' > $OWRTSDK/feeds-perstty.conf
-        cp ${{ github.workspace }}/persistent-tty/openwrt/diffconfig $OWRTSDK
-        cp ${{ github.workspace }}/persistent-tty/openwrt/build-perstty.sh $OWRTSDK
-        cd $OWRTSDK
+        cd build
+        echo 'src-link perstty ${{ github.workspace }}/feed' > ${OWRTSDK}/feeds-perstty.conf
+        cp ${{ github.workspace }}/feed/persistent-tty/openwrt/diffconfig ${OWRTSDK}
+        cp ${{ github.workspace }}/feed/persistent-tty/openwrt/build-perstty.sh ${OWRTSDK}
+        cd ${OWRTSDK}
         ./build-perstty.sh
