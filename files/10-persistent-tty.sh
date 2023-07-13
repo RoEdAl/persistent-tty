@@ -104,8 +104,7 @@ function link_by_id() {
 }
 
 function rmdire() {
-   [ -d $1 ] || return
-   [ -z "$(ls $1)" ] && rmdir $1
+   rmdir $1 &>/dev/null || true
 }
 
 sdev="/dev/${DEVICENAME}"
@@ -141,7 +140,7 @@ elif [ "${ACTION}" = remove ]; then
         [ "${dry_run}" -eq 1 ] && continue
         rm ${link}
     done
-    if [ ! "${sdry_run}" -eq 1 ]; then
+    if [ "${sdry_run}" -eq 0 ]; then
         rmdire /dev/serial/by-path
         rmdire /dev/serial/by-id
         rmdire /dev/serial

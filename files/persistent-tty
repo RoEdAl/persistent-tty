@@ -1,6 +1,5 @@
 
 config general 'general'
-	option enabled 'no'
 	option dry_run 'yes'
 
 config variables 'variables'
@@ -16,7 +15,6 @@ config variables 'variables'
 
 config by_path 'by_path'
 	option enabled 'yes'
-	option dry_run 'no'
 
 config by_id
 	option link '${subsystem}-${manufacturer}:${product}-if${interface}-port${port}'
@@ -26,6 +24,7 @@ config by_id
 
 config by_id
 	option link '${subsystem}-${serial}-if${interface}-port${port}'
+	option enabled 'no'
 
 config by_id 'mylink'
 	option enabled 'no'

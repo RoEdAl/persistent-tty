@@ -4,7 +4,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=persistent-tty
-PKG_VERSION:=1.0
+PKG_VERSION:=1.1
 PKG_RELEASE:=1
 
 PKG_MAINTAINER:=Edmunt Pienkowsky <roed@onet.eu>
