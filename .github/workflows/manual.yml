@@ -45,7 +45,7 @@ jobs:
       uses: actions/cache/save@v3
       with:
         path: build
-        key: openwrt-sdk-22.03.5
+        key: ${{ steps.cache-owrtsdk-restore.outputs.cache-primary-key }}
 
     - name: Git configuration
       run: git config --global advice.detachedHead false
