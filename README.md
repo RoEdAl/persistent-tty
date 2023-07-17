@@ -145,6 +145,18 @@ Examples:
     uci commit
     ```
 
+* Specify defice by `vid:pid` pair and *interface* number:
+
+    ```sh
+    uci set persistent-tty.simcom_a7670=by_id
+    uci set persistent-tty.simcom_a7670.manufacturerId='1e0e'
+    uci set persistent-tty.simcom_a7670.productId='9011'
+    uci set persistent-tty.simcom_a7670.interface='04'
+    uci set persistent-tty.simcom_a7670.link='simcom-a7670'
+    uci commit
+
+    ```
+
 ## Log messages
 
 ### *Dry run* mode

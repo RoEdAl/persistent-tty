@@ -4,7 +4,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=persistent-tty
-PKG_VERSION:=1.1
+PKG_VERSION:=1.2
 PKG_RELEASE:=1
 
 PKG_MAINTAINER:=Edmunt Pienkowsky <roed@onet.eu>
@@ -28,7 +28,7 @@ endef
 
 define Package/persistent-tty/install
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/tty
-	$(INSTALL_CONF) ./files/10-persistent-tty.sh $(1)/etc/hotplug.d/tty/10-persistent-tty
+	$(INSTALL_DATA) ./files/10-persistent-tty.sh $(1)/etc/hotplug.d/tty/10-persistent-tty
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_CONF) ./files/persistent-tty $(1)/etc/config
 endef

@@ -23,11 +23,21 @@ config by_id
 	option link '${subsystem}-${manufacturerId}:${productId}-if${interface}-port${port}'
 
 config by_id
-	option link '${subsystem}-${serial}-if${interface}-port${port}'
 	option enabled 'no'
+	option link '${subsystem}-${serial}-if${interface}-port${port}'
 
-config by_id 'mylink'
+config by_id 'ftdi'
 	option enabled 'no'
 	option dry_run 'yes'
-	option manufacturerId '0403'
-	option link 'mylink-${serial}'
+	option manufacturer 'FTDI'
+	option product 'FT232R USB UART'
+	option link 'ftdi-${serial}'
+
+config by_id 'simcom_a7670'
+	option enabled 'no'
+	option dry_run 'yes'
+	option manufacturerId '1e0e'
+	option productId '9011'
+	option interface '04'
+	option link 'simcom-a7670'
+
