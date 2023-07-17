@@ -2,7 +2,7 @@
 # Publishing OpenWRT package
 #
 
-name: Package bublisher
+name: Package publisher
 
 permissions:
     contents: write
@@ -29,21 +29,28 @@ jobs:
           python3-distutils python3-setuptools python3-dev rsync subversion
           swig time xsltproc zlib1g-dev
 
-    - name: Cache OpenWRT SDK
-      id: cache-owrtsdk
-      uses: actions/cache@v3
+    - name: Restore OpenWRT SDK from cache
+      id: cache-owrtsdk-restore
+      uses: actions/cache/restore@v3
       with:
         path: build
-        key: ${{ runner.os }}-owrtsdk
+        key: openwrt-sdk-22.03.5
 
     - name: Download OpenWRT SDK
-      if: steps.cache-owrtsdk.outputs.cache-hit != 'true'
+      if: steps.cache-owrtsdk-restore.outputs.cache-hit != 'true'
       run: |
         mkdir build
         cd build
         wget -q https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/${OWRTSDK}.tar.xz
         tar -xf ${OWRTSDK}.tar.xz
         rm ${OWRTSDK}.tar.xz
+
+    - name: Cache OpenWRT SDK
+      id: cache-owrtsdk-save
+      uses: actions/cache/save@v3
+      with:
+        path: build
+        key: openwrt-sdk-22.03.5
     
     - name: Git configuration
       run: git config --global advice.detachedHead false
@@ -59,13 +66,13 @@ jobs:
         cd build
         echo 'src-link perstty ${{ github.workspace }}/feed' > ${OWRTSDK}/feeds-perstty.conf
         cp ${{ github.workspace }}/feed/persistent-tty/openwrt/diffconfig ${OWRTSDK}
-        cp ${{ github.workspace }}/feed/persistent-tty/openwrt/build-perstty.sh ${OWRTSDK}
+        cp ${{ github.workspace }}/feed/persistent-tty/openwrt/build-perstty-workflow.sh ${OWRTSDK}/build-perstty.sh
         cd ${OWRTSDK}
         ./build-perstty.sh
         PKG_VER=${{ github.ref }}
         PKG_VER=${PKG_VER##refs/tags/v}
         if [ -z $(ls bin/packages/*/perstty/persistent-tty_${PKG_VER}-*.ipk) ]; then
-           echo 'Package not found'
+           echo '::error::Package not found'
            exit 1
         fi
 
